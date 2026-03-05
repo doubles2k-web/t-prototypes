@@ -5,7 +5,7 @@
 ## 📁 구조
 
 ```
-tving-prototypes/
+t-prototypes/
 ├── index.html              ← 메인 허브 (프로토타입 목록)
 ├── member-info/
 │   └── index.html          ← 회원 정보 관리
@@ -23,8 +23,8 @@ tving-prototypes/
 
 ## 🔗 접속 URL
 
-- **허브**: `https://doubles2k-web.github.io/tving-prototypes/`
-- **회원정보**: `https://doubles2k-web.github.io/tving-prototypes/member-info/`
+- **허브**: `https://doubles2k-web.github.io/t-prototypes/`
+- **회원정보**: `https://doubles2k-web.github.io/t-prototypes/member-info/`
 
 ## 📱 앱처럼 쓰기
 

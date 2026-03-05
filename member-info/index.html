@@ -3,36 +3,25 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  
-  <!-- PWA: iOS 홈 화면에서 앱처럼 실행 -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="TVING 회원정보">
-  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="회원 정보 관리">
   <meta name="theme-color" content="#000000">
-  
-  <title>TVING 회원 정보 관리</title>
-
-  <!-- Manifest (inline base64) -->
-  <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiVFZJTkcg7ZqM7JuQ7KCV67O0Iiwic2hvcnRfbmFtZSI6IlRWSU5HIiwic3RhcnRfdXJsIjoiLiIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwiYmFja2dyb3VuZF9jb2xvciI6IiMwMDAwMDAiLCJ0aGVtZV9jb2xvciI6IiMwMDAwMDAifQ==">
-
-  <!-- Pretendard Font -->
+  <title>회원 정보 관리</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     html, body, #root { margin: 0; padding: 0; background: #000; overflow: hidden; height: 100%; width: 100%; font-family: 'Pretendard Variable', Pretendard, -apple-system, sans-serif; }
     ::-webkit-scrollbar { display: none; }
     input::placeholder { color: #808080; opacity: 1; }
-    input::-webkit-input-placeholder { color: #808080; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes toastIn { from { opacity: 0; transform: translate(-50%, 20px); } to { opacity: 1; transform: translate(-50%, 0); } }
   </style>
-
-  <!-- React + Babel -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- ★ 공용 킷 불러오기 -->
+  <script src="../shared/tving-kit.js"></script>
 </head>
 <body>
   <div id="root"></div>
@@ -40,92 +29,12 @@
   <script type="text/babel">
     const { useState, useEffect, useRef, useCallback } = React;
 
-    const TVING_RED = "#FF153C";
-    const CYAN = "#14D8FF";
-    const ERROR_RED = "#FF4444";
-    const GRAY100 = "#0d0d0d";
-    const GRAY200 = "#191919";
-    const GRAY600 = "#808080";
-    const WHITE = "#ffffff";
-    const BLACK = "#000000";
-    const WHITE10 = "rgba(255,255,255,0.1)";
-    const WHITE30 = "rgba(255,255,255,0.3)";
+    // ★ 킷에서 필요한 것만 꺼내기
+    const {
+      colors, Screen, SectionLabel, InputField, DisabledField,
+      ListGroup, ListItem, ActionButton, PrimaryButton, TVINGLogo,
+    } = T;
 
-    // Safe area insets (for notch devices)
-    const SAT = "env(safe-area-inset-top, 0px)";
-    const SAB = "env(safe-area-inset-bottom, 0px)";
-
-    // Icons
-    const ArrowLeft = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M15 19L8 12L15 5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>;
-    const ArrowRight = () => <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 3L11 8L6 13" stroke={GRAY600} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>;
-    const ClearIcon = ({ onClick }) => (
-      <div
-        onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); onClick?.(); }}
-        onTouchStart={(e) => { e.preventDefault(); e.stopPropagation(); onClick?.(); }}
-        style={{ cursor: "pointer", display: "flex", flexShrink: 0, padding: 4 }}
-      >
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-          <circle cx="10" cy="10" r="7" fill={GRAY600}/>
-          <path d="M7.5 7.5L12.5 12.5M12.5 7.5L7.5 12.5" stroke={GRAY200} strokeWidth="1.5" strokeLinecap="round"/>
-        </svg>
-      </div>
-    );
-    const TVINGLogo = () => (
-      <svg width="20" height="20" viewBox="0 0 20 20">
-        <rect width="20" height="20" rx="4" fill={TVING_RED}/>
-        <text x="10" y="14" textAnchor="middle" fill="white" fontSize="10" fontWeight="bold" fontFamily="sans-serif">V</text>
-      </svg>
-    );
-
-    // Native Input Field
-    function NativeInputField({ value, placeholder, disabled, readOnly, focused, error, inputRef, inputType="text", inputMode, onChange, onFocus, onBlur, onClear, showClear, timer, caption, captionColor }) {
-      const borderColor = error ? ERROR_RED : focused ? WHITE : "transparent";
-      return (
-        <div style={{ width: "100%" }} data-field="true">
-          <div style={{ display: "flex", gap: 8, alignItems: "center", height: 52, padding: "0 16px", background: disabled ? GRAY100 : GRAY200, borderRadius: 12, border: `2px solid ${disabled ? GRAY200 : borderColor}`, transition: "border-color 0.2s ease" }}>
-            {disabled ? (
-              <span style={{ flex: 1, fontSize: 16, color: GRAY600, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>{value || placeholder}</span>
-            ) : (
-              <input ref={inputRef} type={inputType} inputMode={readOnly ? "none" : inputMode} value={value} placeholder={placeholder} readOnly={readOnly} onChange={readOnly ? undefined : onChange} onFocus={readOnly ? (e) => e.target.blur() : onFocus} onBlur={onBlur} autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck="false" style={{ flex: 1, fontSize: 16, height: "100%", background: "transparent", border: "none", outline: "none", color: WHITE, caretColor: WHITE, fontFamily: "'Pretendard Variable', Pretendard, -apple-system, sans-serif", padding: 0, margin: 0, WebkitAppearance: "none", pointerEvents: readOnly ? "none" : "auto" }} />
-            )}
-            {showClear && focused && value && <ClearIcon onClick={onClear} />}
-            {timer && <span style={{ color: CYAN, fontSize: 16, flexShrink: 0 }}>{timer}</span>}
-          </div>
-          {caption && <p style={{ fontSize: 13, color: captionColor || CYAN, marginTop: 8 }}>{caption}</p>}
-        </div>
-      );
-    }
-
-    // UI Components
-    function ListItem({ label, onClick }) {
-      return (
-        <div onClick={onClick} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", cursor: "pointer" }}>
-          <span style={{ fontSize: 16, color: WHITE, lineHeight: 1.5 }}>{label}</span>
-          <ArrowRight />
-        </div>
-      );
-    }
-    function ListGroup({ title, children }) {
-      return (
-        <div style={{ padding: "12px 16px", width: "100%" }}>
-          <p style={{ fontSize: 17, fontWeight: 700, color: WHITE, marginBottom: 12 }}>{title}</p>
-          <div style={{ background: WHITE10, borderRadius: 16, padding: 4, overflow: "hidden" }}>{children}</div>
-        </div>
-      );
-    }
-    function SectionLabel({ label }) {
-      return <p style={{ fontSize: 17, fontWeight: 700, color: WHITE }}>{label}</p>;
-    }
-    function NavBar({ onBack }) {
-      return (
-        <div style={{ display: "flex", alignItems: "center", height: 44 }}>
-          <div onClick={onBack} style={{ width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><ArrowLeft /></div>
-          <span style={{ fontSize: 17, fontWeight: 700, color: WHITE }}>회원 정보 관리</span>
-        </div>
-      );
-    }
-
-    // ═══ MAIN ═══
     function App() {
       const [activeField, setActiveField] = useState(null);
       const [emailValue, setEmailValue] = useState("seodk****@tving.com");
@@ -149,6 +58,7 @@
       const phoneRef = useRef(null);
       const verifyRef = useRef(null);
 
+      // Timer
       useEffect(() => {
         if (phoneSent && verifyStatus === "pending" && timer > 0) {
           timerRef.current = setInterval(() => setTimer(t => t - 1), 1000);
@@ -165,20 +75,21 @@
         return d.slice(0,3)+"-"+d.slice(3,7)+"-"+d.slice(7,11);
       };
 
-      const centerField = useCallback((fieldRef) => {
-        if (!scrollRef.current || !fieldRef?.current) return;
+      const centerField = useCallback((ref) => {
+        if (!scrollRef.current || !ref?.current) return;
         setTimeout(() => {
           const c = scrollRef.current;
-          const visH = c.clientHeight;
-          const top = fieldRef.current.offsetTop;
-          const h = fieldRef.current.offsetHeight;
-          c.scrollTo({ top: Math.max(0, top - visH/2 + h/2), behavior: "smooth" });
+          const top = ref.current.offsetTop;
+          const h = ref.current.offsetHeight;
+          c.scrollTo({ top: Math.max(0, top - c.clientHeight/2 + h/2), behavior: "smooth" });
         }, 300);
       }, []);
 
+      // Focus
       const handleEmailFocus = () => { setActiveField("email"); setEmailInput(emailValue); setEmailError(false); centerField(emailRef); };
       const handleVerifyFocus = () => { if (verifyStatus === "success") return; setActiveField("verify"); centerField(verifyRef); };
 
+      // Blur
       const handleBlur = (field) => {
         setTimeout(() => {
           setActiveField(prev => {
@@ -189,10 +100,12 @@
         }, 200);
       };
 
+      // Clear
       const handleEmailClear = () => { setEmailInput(""); setEmailError(false); emailInputRef.current?.focus(); };
       const handlePhoneClear = () => { setPhoneInput(""); phoneInputRef.current?.focus(); };
-      const handlePhoneChange = (e) => { setPhoneInput(formatPhone(e.target.value.replace(/[^0-9]/g,"").slice(0,11))); };
 
+      // Phone
+      const handlePhoneChange = (e) => { setPhoneInput(formatPhone(e.target.value.replace(/[^0-9]/g,"").slice(0,11))); };
       const handleSendVerification = () => {
         if (phoneInput.replace(/[^0-9]/g,"").length >= 10) {
           setPhoneSent(true); setVerifyStatus("pending"); setTimer(179); setVerifyCode(""); setActiveField("verify");
@@ -205,6 +118,7 @@
         else setVerifyStatus("error");
       };
 
+      // Complete
       const handleComplete = () => {
         if (emailInput && emailInput !== emailValue) {
           if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput)) { setEmailError(true); setActiveField("email"); emailInputRef.current?.focus(); return; }
@@ -223,107 +137,77 @@
       const buttonEnabled = verifyStatus === "success" || emailValue !== "seodk****@tving.com";
       const isEditing = activeField !== null || phoneEditing;
 
+      // ★ Screen 컴포넌트로 감싸기만 하면 NavBar + 스크롤 + HomeIndicator + Toast 자동 처리
       return (
-        <div style={{ width: "100%", height: "100%", background: BLACK, position: "relative", overflow: "hidden", maxWidth: 430, margin: "0 auto" }}>
+        <Screen title="회원 정보 관리" onBack={resetAll} toast={toast} scrollRef={scrollRef}>
 
-          {/* Fixed: NavBar with safe area */}
-          <div style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 50, background: BLACK, paddingTop: SAT }}>
-            <NavBar onBack={resetAll} />
+          <div style={{ height: 12 }} />
+
+          {/* 아이디 */}
+          <div style={{ padding: "12px 16px", display: "flex", flexDirection: "column", gap: 12 }}>
+            <SectionLabel label="아이디" />
+            <DisabledField value="tving2025" leftIcon={<TVINGLogo />} />
           </div>
 
-          {/* Scrollable Content */}
-          <div ref={scrollRef} style={{
-            position: "absolute",
-            top: `calc(44px + ${SAT})`,
-            left: 0, right: 0,
-            bottom: `calc(${SAB})`,
-            overflowY: "auto", overflowX: "hidden",
-            WebkitOverflowScrolling: "touch",
-          }}>
-            <div style={{ height: 12 }} />
-
-            {/* 아이디 */}
+          {/* 비밀번호 */}
+          {!isEditing ? (
+            <ListGroup title="비밀번호"><ListItem label="비밀번호 변경" onClick={() => setToast("비밀번호 변경 화면으로 이동합니다.")} /></ListGroup>
+          ) : (
             <div style={{ padding: "12px 16px", display: "flex", flexDirection: "column", gap: 12 }}>
-              <SectionLabel label="아이디" />
-              <div style={{ display: "flex", gap: 8, alignItems: "center", height: 52, padding: "0 16px", background: GRAY100, borderRadius: 12, border: `2px solid ${GRAY200}` }}>
-                <TVINGLogo />
-                <span style={{ fontSize: 16, color: GRAY600 }}>tving2025</span>
+              <SectionLabel label="비밀번호" />
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 52, padding: "0 16px", background: colors.gray200, borderRadius: 12 }}>
+                <span style={{ fontSize: 16, color: colors.white }}>비밀번호 변경</span>
+                <T.ArrowRight />
+              </div>
+            </div>
+          )}
+
+          {/* 이름 */}
+          <div style={{ padding: "12px 16px", display: "flex", flexDirection: "column", gap: 12 }}>
+            <SectionLabel label="이름" />
+            <InputField value="심*경" disabled={true} />
+          </div>
+
+          {/* 이메일 */}
+          <div ref={emailRef} style={{ padding: "12px 16px", display: "flex", flexDirection: "column", gap: 12 }}>
+            <SectionLabel label="이메일" />
+            <InputField value={emailInput} placeholder="이메일 주소" inputRef={emailInputRef} inputType="email" inputMode="email" focused={activeField==="email"} error={emailError} onChange={(e)=>{setEmailInput(e.target.value);setEmailError(false);}} onFocus={handleEmailFocus} onBlur={()=>handleBlur("email")} onClear={handleEmailClear} showClear={true} caption={emailError?"올바른 이메일 주소를 입력해 주세요.":null} captionColor={colors.errorRed} />
+          </div>
+
+          {/* 휴대폰 번호 */}
+          <div ref={phoneRef} style={{ padding: "12px 16px", display: "flex", flexDirection: "column", gap: 12 }}>
+            <SectionLabel label="휴대폰 번호" />
+            <div style={{ display: "flex", gap: phoneEditing ? 12 : 0, transition: "gap 0.2s ease" }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <InputField value={phoneEditing?phoneInput:phoneValue} placeholder="휴대폰 번호" inputRef={phoneInputRef} inputType="tel" inputMode="numeric" readOnly={phoneSent} focused={activeField==="phone"&&!phoneSent} onChange={handlePhoneChange} onFocus={()=>{if(verifyStatus==="success"||phoneSent)return;if(!phoneEditing){setPhoneEditing(true);setPhoneInput(phoneValue);}setActiveField("phone");centerField(phoneRef);}} onBlur={()=>handleBlur("phone")} onClear={handlePhoneClear} showClear={!phoneSent&&activeField==="phone"} />
+              </div>
+              <div style={{ width: phoneEditing?132:0, overflow:"hidden", opacity:phoneEditing?1:0, transition:"width 0.25s ease, opacity 0.2s ease", flexShrink:0 }}>
+                <ActionButton label={phoneSent?"재전송":"인증번호 전송"} onClick={phoneSent?handleResend:handleSendVerification} />
               </div>
             </div>
 
-            {/* 비밀번호 */}
-            {!isEditing ? (
-              <ListGroup title="비밀번호"><ListItem label="비밀번호 변경" onClick={() => setToast("비밀번호 변경 화면으로 이동합니다.")} /></ListGroup>
-            ) : (
-              <div style={{ padding: "12px 16px", display: "flex", flexDirection: "column", gap: 12 }}>
-                <SectionLabel label="비밀번호" />
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 52, padding: "0 16px", background: GRAY200, borderRadius: 12 }}>
-                  <span style={{ fontSize: 16, color: WHITE }}>비밀번호 변경</span><ArrowRight />
+            {phoneSent && (
+              <div ref={verifyRef} style={{ display:"flex", gap:12, animation:"fadeIn 0.3s ease" }}>
+                <div style={{ flex:1 }}>
+                  <InputField value={verifyCode} placeholder="인증번호 6자리" inputRef={verifyInputRef} inputType="tel" inputMode="numeric" readOnly={verifyStatus==="success"} focused={activeField==="verify"&&verifyStatus!=="success"} error={verifyStatus==="error"} onChange={(e)=>{const v=e.target.value.replace(/[^0-9]/g,"").slice(0,6);setVerifyCode(v);if(verifyStatus==="error")setVerifyStatus("pending");}} onFocus={handleVerifyFocus} onBlur={()=>handleBlur("verify")} timer={verifyStatus!=="success"?formatTimer(timer):undefined} caption={verifyStatus==="success"?"인증이 완료되었습니다.":verifyStatus==="error"?"인증번호가 일치하지 않습니다.":null} captionColor={verifyStatus==="error"?colors.errorRed:colors.cyan} />
                 </div>
+                {verifyStatus!=="success" && <ActionButton label="인증" onClick={handleVerify} disabled={verifyCode.length!==6} />}
               </div>
             )}
-
-            {/* 이름 */}
-            <div style={{ padding: "12px 16px", display: "flex", flexDirection: "column", gap: 12 }}>
-              <SectionLabel label="이름" />
-              <NativeInputField value="심*경" disabled={true} />
-            </div>
-
-            {/* 이메일 */}
-            <div ref={emailRef} style={{ padding: "12px 16px", display: "flex", flexDirection: "column", gap: 12 }}>
-              <SectionLabel label="이메일" />
-              <NativeInputField value={emailInput} placeholder="이메일 주소" inputRef={emailInputRef} inputType="email" inputMode="email" focused={activeField==="email"} error={emailError} onChange={(e)=>{setEmailInput(e.target.value);setEmailError(false);}} onFocus={handleEmailFocus} onBlur={()=>handleBlur("email")} onClear={handleEmailClear} showClear={true} caption={emailError?"올바른 이메일 주소를 입력해 주세요.":null} captionColor={ERROR_RED} />
-            </div>
-
-            {/* 휴대폰 번호 */}
-            <div ref={phoneRef} style={{ padding: "12px 16px", display: "flex", flexDirection: "column", gap: 12 }}>
-              <SectionLabel label="휴대폰 번호" />
-              <div style={{ display: "flex", gap: phoneEditing ? 12 : 0, transition: "gap 0.2s ease" }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <NativeInputField value={phoneEditing?phoneInput:phoneValue} placeholder="휴대폰 번호" inputRef={phoneInputRef} inputType="tel" inputMode="numeric" readOnly={phoneSent} focused={activeField==="phone"&&!phoneSent} onChange={handlePhoneChange} onFocus={()=>{if(verifyStatus==="success"||phoneSent)return;if(!phoneEditing){setPhoneEditing(true);setPhoneInput(phoneValue);}setActiveField("phone");centerField(phoneRef);}} onBlur={()=>handleBlur("phone")} onClear={handlePhoneClear} showClear={!phoneSent&&activeField==="phone"} />
-                </div>
-                <div style={{ width: phoneEditing?132:0, overflow:"hidden", opacity: phoneEditing?1:0, transition:"width 0.25s ease, opacity 0.2s ease", flexShrink:0 }}>
-                  <button onMouseDown={e=>e.preventDefault()} onTouchStart={e=>e.preventDefault()} onClick={phoneSent?handleResend:handleSendVerification} style={{ width:132,height:52,background:"transparent",border:`1px solid ${GRAY600}`,borderRadius:12,color:WHITE,fontSize:16,cursor:"pointer",whiteSpace:"nowrap",fontFamily:"inherit" }}>{phoneSent?"재전송":"인증번호 전송"}</button>
-                </div>
-              </div>
-              {phoneSent && (
-                <div ref={verifyRef} style={{ display:"flex",gap:12,animation:"fadeIn 0.3s ease" }}>
-                  <div style={{ flex:1 }}>
-                    <NativeInputField value={verifyCode} placeholder="인증번호 6자리" inputRef={verifyInputRef} inputType="tel" inputMode="numeric" readOnly={verifyStatus==="success"} focused={activeField==="verify"&&verifyStatus!=="success"} error={verifyStatus==="error"} onChange={(e)=>{const v=e.target.value.replace(/[^0-9]/g,"").slice(0,6);setVerifyCode(v);if(verifyStatus==="error")setVerifyStatus("pending");}} onFocus={handleVerifyFocus} onBlur={()=>handleBlur("verify")} timer={verifyStatus!=="success"?formatTimer(timer):undefined} caption={verifyStatus==="success"?"인증이 완료되었습니다.":verifyStatus==="error"?"인증번호가 일치하지 않습니다.":null} captionColor={verifyStatus==="error"?ERROR_RED:CYAN} />
-                  </div>
-                  {verifyStatus!=="success" && (
-                    <button onMouseDown={e=>e.preventDefault()} onTouchStart={e=>e.preventDefault()} onClick={handleVerify} style={{ width:132,height:52,background:"transparent",border:`1px solid ${GRAY600}`,borderRadius:12,color:WHITE,fontSize:16,cursor:verifyCode.length===6?"pointer":"default",opacity:verifyCode.length===6?1:0.4,flexShrink:0,fontFamily:"inherit" }}>인증</button>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* 회원 설정 */}
-            <ListGroup title="회원 설정">
-              <ListItem label="회원 탈퇴" onClick={() => setToast("회원 탈퇴 화면으로 이동합니다.")} />
-              <ListItem label="로그아웃" onClick={() => setToast("로그아웃 처리됩니다.")} />
-            </ListGroup>
-            <div style={{ height: 8 }} />
-
-            {/* 완료 */}
-            <div style={{ padding: "12px 16px" }}>
-              <button onClick={handleComplete} style={{ width:"100%",height:52,background:buttonEnabled?WHITE:"#1C1C22",borderRadius:100,border:"none",fontSize:16,fontWeight:700,color:buttonEnabled?BLACK:WHITE30,cursor:buttonEnabled?"pointer":"default",fontFamily:"inherit" }}>완료</button>
-            </div>
-
-            {activeField && <div style={{ height: 320 }} />}
-            <div style={{ height: `calc(20px + ${SAB})` }} />
           </div>
 
-          {/* Home Indicator */}
-          <div style={{ position:"absolute",bottom:0,left:0,right:0,height:`calc(34px + ${SAB})`,display:"flex",alignItems:"flex-start",justifyContent:"center",paddingTop:8,zIndex:110,pointerEvents:"none" }}>
-            <div style={{ width:144,height:5,background:WHITE,borderRadius:100,opacity:0.3 }} />
-          </div>
+          {/* 회원 설정 */}
+          <ListGroup title="회원 설정">
+            <ListItem label="회원 탈퇴" onClick={() => setToast("회원 탈퇴 화면으로 이동합니다.")} />
+            <ListItem label="로그아웃" onClick={() => setToast("로그아웃 처리됩니다.")} />
+          </ListGroup>
+          <div style={{ height: 8 }} />
 
-          {/* Toast */}
-          {toast && (
-            <div style={{ position:"absolute",bottom:100,left:"50%",transform:"translateX(-50%)",background:"rgba(255,255,255,0.15)",backdropFilter:"blur(20px)",padding:"12px 24px",borderRadius:100,color:WHITE,fontSize:14,whiteSpace:"nowrap",animation:"toastIn 0.3s ease",zIndex:200 }}>{toast}</div>
-          )}
-        </div>
+          <PrimaryButton label="완료" enabled={buttonEnabled} onClick={handleComplete} />
+
+          {activeField && <div style={{ height: 320 }} />}
+          <div style={{ height: 20 }} />
+        </Screen>
       );
     }
 
