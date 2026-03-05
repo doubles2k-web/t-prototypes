@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#000000">
+  <title>TVING Prototypes</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: #000; color: #fff; font-family: 'Pretendard Variable', -apple-system, sans-serif; min-height: 100vh; }
+    body { padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom); }
+    .container { max-width: 430px; margin: 0 auto; padding: 24px 20px; }
+    .logo { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .logo svg { flex-shrink: 0; }
+    .logo span { font-size: 22; font-weight: 800; letter-spacing: -0.5px; }
+    .subtitle { font-size: 14px; color: #808080; margin-bottom: 32px; }
+    .section-title { font-size: 13px; font-weight: 600; color: #808080; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+    .card-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 32px; }
+    .card {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px; background: #191919; border-radius: 16px;
+      text-decoration: none; color: #fff;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .card:active { background: #252525; transform: scale(0.98); }
+    .card-left { display: flex; flex-direction: column; gap: 4px; }
+    .card-title { font-size: 16px; font-weight: 600; }
+    .card-desc { font-size: 13px; color: #808080; }
+    .card-meta { display: flex; gap: 8px; margin-top: 6px; }
+    .tag { font-size: 11px; padding: 2px 8px; border-radius: 100px; background: rgba(255,255,255,0.08); color: #aaa; }
+    .tag.live { background: rgba(20,216,255,0.15); color: #14D8FF; }
+    .card-arrow { color: #808080; flex-shrink: 0; }
+    .empty { text-align: center; padding: 40px 20px; color: #555; font-size: 14px; line-height: 1.6; }
+    .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #191919; font-size: 12px; color: #555; line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">
+      <svg width="28" height="28" viewBox="0 0 20 20"><rect width="20" height="20" rx="4" fill="#FF153C"/><text x="10" y="14" text-anchor="middle" fill="white" font-size="10" font-weight="bold" font-family="sans-serif">V</text></svg>
+      <span>TVING Prototypes</span>
+    </div>
+    <p class="subtitle">디자인 프로토타입 모음</p>
+
+    <!-- ═══ MY 설정 ═══ -->
+    <p class="section-title">MY 설정</p>
+    <div class="card-list">
+      <a class="card" href="./member-info/">
+        <div class="card-left">
+          <span class="card-title">회원 정보 관리</span>
+          <span class="card-desc">이메일 변경, 휴대폰 인증 플로우</span>
+          <div class="card-meta">
+            <span class="tag live">Live</span>
+            <span class="tag">Webview</span>
+          </div>
+        </div>
+        <svg class="card-arrow" width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M7.5 4L13.5 10L7.5 16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+
+      <!-- 새 프로토타입 추가할 때 이 아래에 복사 붙여넣기 -->
+      <!--
+      <a class="card" href="./폴더이름/">
+        <div class="card-left">
+          <span class="card-title">화면 이름</span>
+          <span class="card-desc">간단한 설명</span>
+          <div class="card-meta">
+            <span class="tag live">Live</span>
+            <span class="tag">Webview</span>
+          </div>
+        </div>
+        <svg class="card-arrow" width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M7.5 4L13.5 10L7.5 16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+      -->
+    </div>
+
+    <div class="footer">
+      <p>프로토타입 추가 방법:</p>
+      <p>1. 새 폴더 만들기 (예: password-change/)</p>
+      <p>2. index.html 파일 넣기</p>
+      <p>3. 이 페이지에 카드 추가</p>
+      <p>4. git push → 자동 배포</p>
+    </div>
+  </div>
+</body>
+</html>
