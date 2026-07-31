@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>TV OS · 10초 퀵이동 인터랙션 프로토타입</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%;
+    background: #000;
+    color: #fff;
+    font-family: 'Pretendard Variable', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', sans-serif;
+    overflow: hidden;
+  }
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    gap: 20px;
+    padding: 16px;
+  }
+
+  /* ── TV frame (16:9, scales to viewport) ───────────────────── */
+  .tv-frame {
+    position: relative;
+    width: min(100vw - 32px, (100vh - 220px) * 16 / 9);
+    aspect-ratio: 16 / 9;
+    background: #000;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.08), 0 30px 80px rgba(0,0,0,0.6);
+  }
+  .tv-frame__bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* ── skip icons ─────────────────────────────────────────────
+     Figma coords (1920x1080 canvas):
+     back10    center = (196, 540)  → left 10.2083% / top 50%
+     forward10 center = (1724, 540) → left 89.7917% / top 50%
+     circle    152px  → 7.9167% of frame width
+  ------------------------------------------------------------- */
+  .skip-icon {
+    position: absolute;
+    top: 50%;
+    width: 7.9167%;
+    aspect-ratio: 1 / 1;
+    transform: translate(-50%, -50%) scale(0.8);
+    opacity: 0;
+    pointer-events: none;
+  }
+  .skip-icon--back { left: 10.2083%; }
+  .skip-icon--forward { left: 89.7917%; }
+
+  .skip-icon__bg,
+  .skip-icon__glyph {
+    position: absolute;
+    display: block;
+  }
+  .skip-icon__bg {
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: #000000;
+    opacity: 0.3;
+  }
+  .skip-icon__glyph {
+    left: 50%;
+    top: 50%;
+    width: 41.84%;
+    height: 45.67%;
+    transform: translate(-50%, -50%);
+  }
+
+  @keyframes skip-enter {
+    0%    { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+    100%  { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  }
+  @keyframes skip-exit {
+    0%    { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    100%  { opacity: 0; transform: translate(-50%, -50%) scale(1.16); }
+  }
+  .skip-icon.enter {
+    animation: skip-enter 0.4s cubic-bezier(0, 0, 0.2, 1) forwards;
+  }
+  .skip-icon.exit {
+    animation: skip-exit 0.4s cubic-bezier(0, 0, 0.2, 1) forwards;
+  }
+
+  /* ── on-screen remote (for mouse/touch testing) ────────────── */
+  .remote {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: #141414;
+    border: 1px solid #262626;
+    border-radius: 100px;
+  }
+  .remote button {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid #333;
+    background: #1f1f1f;
+    color: #fff;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.12s, transform 0.08s;
+  }
+  .remote button:active { background: #333; transform: scale(0.92); }
+  .remote span {
+    font-size: 12px;
+    color: #808080;
+    padding: 0 6px;
+  }
+
+  /* ── dev spec panel ─────────────────────────────────────────── */
+  .spec {
+    position: fixed;
+    right: 16px;
+    top: 16px;
+    width: 250px;
+    background: rgba(20,20,20,0.92);
+    border: 1px solid #292929;
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-size: 12px;
+    line-height: 1.6;
+    color: #ccc;
+    backdrop-filter: blur(6px);
+  }
+  .spec h2 {
+    font-size: 13px;
+    color: #fff;
+    margin-bottom: 8px;
+  }
+  .spec dt { color: #808080; margin-top: 8px; }
+  .spec dd { color: #eee; }
+  .spec code {
+    background: #262626;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 11px;
+  }
+  .hint {
+    font-size: 12px;
+    color: #666;
+  }
+</style>
+</head>
+<body>
+
+  <div class="tv-frame" id="tvFrame">
+    <img class="tv-frame__bg" src="assets/tv-screen.gif" alt="">
+
+    <div class="skip-icon skip-icon--back" id="iconBack">
+      <div class="skip-icon__bg"></div>
+      <img class="skip-icon__glyph" src="assets/vector-back10.svg" alt="">
+    </div>
+
+    <div class="skip-icon skip-icon--forward" id="iconForward">
+      <div class="skip-icon__bg"></div>
+      <img class="skip-icon__glyph" src="assets/vector-forward10.svg" alt="">
+    </div>
+  </div>
+
+  <div class="remote">
+    <button id="btnLeft" aria-label="10초 뒤로">◀◀</button>
+    <span>← / → 키를 누르고 있어보세요</span>
+    <button id="btnRight" aria-label="10초 앞으로">▶▶</button>
+  </div>
+  <p class="hint">키보드 방향키(←/→)를 눌렀다 떼거나, 누른 채로 유지해보세요.</p>
+
+  <div class="spec">
+    <h2>인터랙션 스펙</h2>
+    <dl>
+      <dt>Trigger</dt>
+      <dd>리모컨 좌/우 방향키 (<code>ArrowLeft</code> / <code>ArrowRight</code>)</dd>
+
+      <dt>등장 — keydown (0.4s)</dt>
+      <dd>opacity 0→1, scale 80%→100%<br><code>cubic-bezier(0,0,0.2,1)</code></dd>
+
+      <dt>유지 — 키를 누르고 있는 동안</dt>
+      <dd>opacity 100%, scale 100%로 고정 (깜빡임 없이 계속 떠 있음). 키를 얼마나 오래 누르고 있든 이 상태 유지</dd>
+
+      <dt>소멸 — keyup (0.4s)</dt>
+      <dd>opacity 1→0, scale 100%→116%로 퍼지며 사라짐<br><code>cubic-bezier(0,0,0.2,1)</code></dd>
+
+      <dt>짧게 탭했을 때</dt>
+      <dd>등장 애니메이션이 끝나자마자(0.4s 후) 바로 소멸 시작 → 총 0.8s로 기존과 동일하게 재생</dd>
+
+      <dt>연타 / 재홀드 시</dt>
+      <dd>진행 중인 애니메이션을 즉시 중단하고 처음(80%)부터 재시작</dd>
+    </dl>
+  </div>
+
+<script>
+  const iconBack = document.getElementById('iconBack');
+  const iconForward = document.getElementById('iconForward');
+
+  // phase: 'idle' | 'entering' | 'held' | 'exiting'
+  const iconState = new WeakMap();
+  function getState(el) {
+    if (!iconState.has(el)) iconState.set(el, { phase: 'idle', keyDown: false });
+    return iconState.get(el);
+  }
+
+  function startEnter(el) {
+    const s = getState(el);
+    el.classList.remove('enter', 'exit');
+    void el.offsetWidth; // force reflow so the animation restarts from 0%
+    el.classList.add('enter');
+    s.phase = 'entering';
+  }
+
+  function startExit(el) {
+    const s = getState(el);
+    el.classList.remove('enter', 'exit');
+    void el.offsetWidth;
+    el.classList.add('exit');
+    s.phase = 'exiting';
+  }
+
+  function press(el) {
+    const s = getState(el);
+    s.keyDown = true;
+    startEnter(el);
+  }
+
+  function release(el) {
+    const s = getState(el);
+    s.keyDown = false;
+    if (s.phase === 'held') startExit(el);
+    // phase === 'entering' → animationend 핸들러가 keyDown을 다시 확인해서 소멸을 이어감
+    // phase === 'idle' / 'exiting' → 할 일 없음
+  }
+
+  [iconBack, iconForward].forEach((el) => {
+    el.addEventListener('animationend', (e) => {
+      const s = getState(el);
+      if (e.animationName === 'skip-enter') {
+        s.phase = 'held';
+        if (!s.keyDown) startExit(el);
+      } else if (e.animationName === 'skip-exit') {
+        el.classList.remove('exit');
+        s.phase = 'idle';
+      }
+    });
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.repeat) return; // OS auto-repeat은 무시 (유지 상태는 이미 켜져 있으므로 반복 입력이 불필요)
+    if (e.key === 'ArrowLeft') { e.preventDefault(); press(iconBack); }
+    if (e.key === 'ArrowRight') { e.preventDefault(); press(iconForward); }
+  });
+  document.addEventListener('keyup', (e) => {
+    if (e.key === 'ArrowLeft') release(iconBack);
+    if (e.key === 'ArrowRight') release(iconForward);
+  });
+  window.addEventListener('blur', () => { release(iconBack); release(iconForward); });
+
+  const btnLeft = document.getElementById('btnLeft');
+  const btnRight = document.getElementById('btnRight');
+  btnLeft.addEventListener('pointerdown', () => press(iconBack));
+  btnRight.addEventListener('pointerdown', () => press(iconForward));
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach((type) => {
+    btnLeft.addEventListener(type, () => release(iconBack));
+    btnRight.addEventListener(type, () => release(iconForward));
+  });
+</script>
+
+</body>
+</html>
